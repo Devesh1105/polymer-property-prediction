@@ -4,12 +4,12 @@ SRC='/root/.claude/uploads/f2d212fd-f44f-540a-a23c-93ad78f59600/71d47cf9-bestapp
 OUT='/home/user/AISEHACK-2.0/polymer_r2_v8.ipynb'
 nb=json.load(open(SRC))
 
-def code(s):  return {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":s.strip("\n").split("\n")}
-def md(s):    return {"cell_type":"markdown","metadata":{},"source":s.strip("\n").split("\n")}
-def fix(cells):
-    for c in cells:
-        c["source"]=[l+"\n" for l in c["source"][:-1]]+[c["source"][-1]]
-    return cells
+def _src(s):
+    lines=s.strip("\n").split("\n")
+    return [l+"\n" for l in lines[:-1]]+[lines[-1]]
+def code(s):  return {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":_src(s)}
+def md(s):    return {"cell_type":"markdown","metadata":{},"source":_src(s)}
+def fix(cells): return cells          # sources are already nbformat-correct
 
 # ---------------------------------------------------------------- 13: feature selection
 CELL13 = r'''
