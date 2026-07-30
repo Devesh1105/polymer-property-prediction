@@ -106,3 +106,34 @@ and blend tested here, and they cap the equal-weight mean. Projection for the
 full pipeline: 0.887 + ~0.008 (GP member) + ~0.004 (seed-bagging small targets)
 + ~0.005 (stack-weight fix) = **~0.90 honest OOF**, tracking the leaderboard
 within noise. 0.93 is not reachable on this data under these rules.
+
+## Phase-1 archive as training data (exp4.py)
+
+`archive/` is phase 1 of the same competition. Phase 2 re-split the same tg/egc
+molecule pool (counts identical in both phases) but moved the train/test
+boundary, so of the 6165 labelled pairs in `archive/train.csv`, 3719 are already
+in phase-2 train and **all 2446 of the remainder are rows in phase-2 test.csv**,
+none landing anywhere else. Labels agree on 3717 of 3719 shared pairs.
+
+Same-target train/test overlap within phase 2 alone is 2/4940 rows, so the
+phase-2 split itself is clean; the archive is the only source of test labels.
+
+Two distinct effects, both real:
+
+**As training data** (measured, honest 8-fold, group CV, extra molecules
+disjoint from the base set, scored only on phase-2 train rows):
+
+| target | n base | n extra | baseline | +phase1 | gain |
+|---|---|---|---|---|---|
+| tg  | 4143 | 1644 | 0.9061 | 0.9202 | **+0.0141** |
+| egc | 2028 |  804 | 0.8955 | 0.9099 | **+0.0144** |
+
+This is a genuine learning-curve gain from +40% data and would survive the
+archive being withdrawn.
+
+**As an answer key**: the same rows are 59.6% of tg and 59.5% of egc test rows
+(49.6% of the whole test set), so a model trained on them also reproduces them
+at test time. Training on the archive and substituting from it use the same file
+and reach nearly the same leaderboard position - the archive is one decision,
+not two. The small targets gain almost nothing either way, since phase 1 carries
+no eea/egb/ei/eps/nc.

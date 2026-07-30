@@ -606,7 +606,22 @@ if not os.path.exists(PI1M_PATH):
 # by memorisation while destroying your tg/egc CV. If you use the archive at all, direct
 # substitution is both stronger and honest about what it is.
 # --------------------------------------------------------------------------------------
-USE_PHASE1_LABELS = False        # <-- set True to substitute phase-1 labels into submission
+USE_PHASE1_TRAIN  = False        # <-- merge phase-1 rows into the TRAINING set
+USE_PHASE1_LABELS = False        # <-- substitute phase-1 labels directly into the submission
+#
+# USE_PHASE1_TRAIN is the one with a measured, legitimate model gain. The 2446 extra pairs are
+# +40% training data for tg (4143 -> 5787) and egc (2028 -> 2832). Honest 8-fold OOF, group CV,
+# extra molecules disjoint from the base set, scored only on phase-2 train rows:
+#       tg   0.9061 -> 0.9202  (+0.0141)
+#       egc  0.8955 -> 0.9099  (+0.0144)
+# That gain would survive even if the archive were withdrawn, because it is just more data.
+#
+# BE CLEAR-EYED: this is NOT the "rules-safe" option. Those extra molecules ARE phase-2 test
+# rows, so a model trained on them also reproduces their labels at test time. Training on the
+# archive and substituting from it use the same file and reach nearly the same leaderboard
+# position. The only differences are that training also genuinely improves the model, and that
+# it keeps tg/egc OOF interpretable. Whether the archive may be used at all is one decision,
+# not two.
 
 PHASE1_LUT = {}
 _p1_paths = [p for p in ["archive/train.csv", os.path.join(DATA_DIR,"archive","train.csv"),
@@ -625,9 +640,27 @@ if _p1_paths:
         _c = sum((c,tt) in PHASE1_LUT for c,tt in
                  zip(test['smiles_canon'][_m], test['target_type'][_m]))
         if _c: print(f"    {_t:4s} {_c:5d}/{int(_m.sum()):5d} = {100*_c/_m.sum():5.1f}%")
-    print(f"  USE_PHASE1_LABELS = {USE_PHASE1_LABELS}")
+    print(f"  USE_PHASE1_TRAIN={USE_PHASE1_TRAIN}  USE_PHASE1_LABELS={USE_PHASE1_LABELS}")
+
+    if USE_PHASE1_TRAIN and PHASE1_LUT:
+        _key2 = set(zip(train["smiles_canon"], train["target_type"]))
+        _rows = [{"id": -1, "smiles": r.smiles, "smiles_canon": r.smiles_canon,
+                  "target_type": r.target_type, "target": r.target}
+                 for r in _p1.itertuples()
+                 if (r.smiles_canon, r.target_type) not in _key2]
+        if _rows:
+            train = pd.concat([train, pd.DataFrame(_rows)], ignore_index=True, sort=False)
+            train = train.drop_duplicates(subset=["smiles_canon","target_type"], keep="first")
+            train = train.reset_index(drop=True)
+            train["row_id"] = np.arange(len(train))
+            print(f"Merged {len(_rows)} phase-1 rows into train -> {len(train)} rows total")
+            print("  per-target now:", train["target_type"].value_counts().to_dict())
+            print("  NOTE: these molecules are phase-2 test rows, so tg/egc LB will exceed OOF.")
+    else:
+        print("USE_PHASE1_TRAIN is False -- training on phase-2 data only.")
 else:
     print("No phase-1 archive found -- continuing with phase-2 data only.")
+    USE_PHASE1_TRAIN = USE_PHASE1_LABELS = False
 """
 
 # ---------------------------------------------------------------- assemble
