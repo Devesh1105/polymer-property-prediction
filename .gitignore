@@ -1,3 +1,14 @@
+# notebook / python scratch
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+
+# generated outputs
+submission.csv
+
+# large intermediates from diagnostics/ (regenerate with feats.py / feats2.py)
 diagnostics/*.pkl
 diagnostics/*.log
+
+# PI1M.zip is tracked; the extracted CSV (~47 MB) is not
 PI1M.csv
